@@ -143,3 +143,43 @@ await fetch(
 
 **Headless Flow**:
 `User Supplies PAT + Clicks Run -> UI JSON POSTs to GitHub Actions API -> GitHub spins Ubuntu Runner -> Workflow exports vars -> Runner passes execution to dynamic_runner.js -> UI loops every 5 seconds to map Runner Status Object to DOM visuals.`
+
+---
+
+## 6. Manual Local Execution (Headed Mode Bypassing UI)
+If a developer or QA engineer wants to run tests visually on their local machine without going through the web UI to generate a `.bat` file, they can execute Playwright manually from their terminal.
+
+There are two primary ways to run tests manually on your terminal (Powershell):
+
+### A. Using the Core Dynamic Engine
+You can pass the environment variables directly to the `dynamic_runner.js` script so it automatically handles the mapping for you.
+
+```powershell
+# 1. Set environment variables
+$env:TEST_IDS="TC001,TC002"
+$env:BASE_URL="https://webuat.hitechdairy.in/login"
+$env:USERNAME="ShauryaTechnosoftPvt"
+$env:PASSWORD="Stpl@123"
+$env:HEADLESS="false"
+
+# 2. Run the dynamic execution engine
+node runner/dynamic_runner.js
+```
+
+### B. Standard Playwright CLI (Direct bypass)
+If you know the exact file path from the `test-mapping.json`, you can simply pass the variables and invoke Playwright's native CLI directly.
+
+```powershell
+# 1. Set environment variables
+$env:BASE_URL="https://webuat.hitechdairy.in/login"
+$env:USERNAME="ShauryaTechnosoftPvt"
+$env:PASSWORD="Stpl@123"
+
+# 2. Execute Playwright natively in headed mode
+npx playwright test tests/login.spec.ts --headed
+```
+
+After execution, you can manually open the beautiful graphical report by running:
+```bash
+npx playwright show-report
+```
