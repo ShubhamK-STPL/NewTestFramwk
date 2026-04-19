@@ -1,0 +1,22 @@
+{
+  "environments": [
+    {
+      "name": "Dev Env",
+      "url": "https://demo.hitechdairy.in/login",
+      "username": "ShauryaTechnosoftPvt",
+      "password": "Stpl@123"
+    },
+    {
+      "name": "UAT Env",
+      "url": "https://webuat.hitechdairy.in/login",
+      "username": "ShauryaTechnosoftPvt",
+      "password": "Stpl@123"
+    },
+    {
+      "name": "Prod Env",
+      "url": "https://hitechdairy.in/login",
+      "username": "ShauryaTechnosoftPvt",
+      "password": "Stpl@123"
+    }
+  ]
+}
