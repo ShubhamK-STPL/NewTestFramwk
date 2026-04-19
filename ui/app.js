@@ -114,67 +114,80 @@ form.runBtn.addEventListener('click', async () => {
 });
 
 // ─── Headed: Generate & Download BAT ─────────────────────────────────────────
+// ─── Headed: Generate & Download Portable Local Runner (.BAT) ────────────────
 function executeHeaded({ url, username, password, tests, pat }) {
-  // Use PAT in clone URL for private repo support
+  // Use PAT in clone URL for private repo support (Universal Access)
   const remoteUrl = pat 
     ? `https://${pat}@github.com/ShubhamK-STPL/NewTestFramwk.git`
     : `https://github.com/ShubhamK-STPL/NewTestFramwk.git`;
 
   const batContent = `
 @echo off
-setlocal
+setlocal EnableDelayedExpansion
 
-:: Configuration
-set BASE_URL=${url}
-set USERNAME=${username}
-set PASSWORD=${password}
-set TARGET_DIR=%USERPROFILE%\\Documents\\SmokeTests
-set REPO_DIR=%TARGET_DIR%\\NewTestFramwk
+:: ============================================================================
+:: Playwright Automation - Portable Local Runner
+:: ============================================================================
+:: This script will clone/update the repository and run the tests locally.
+:: Expected to run from any folder (e.g., Downloads).
+:: ============================================================================
 
-echo ======================================================
-echo Playwright Automation - Parallel Execution (Headed)
-echo ======================================================
-echo Target Environment: ${url}
+set "BASE_URL=${url}"
+set "USERNAME=${username}"
+set "PASSWORD=${password}"
+set "REPO_NAME=NewTestFramwk"
+set "WORKING_DIR=%~dp0"
+
+echo [START] Initializing Playwright Local Runner...
+echo [INFO] Target URL: %BASE_URL%
+echo [INFO] Working Dir: %WORKING_DIR%
 echo.
 
-:: Ensure Target Directory exists
-if not exist "%TARGET_DIR%" (
-  echo [INFO] Creating directory: %TARGET_DIR%
-  mkdir "%TARGET_DIR%"
-)
+:: 1. Check prerequisites
+where git >nul 2>&1 || (echo [ERROR] Git not found! Please install Git. & pause & exit /b 1)
+where node >nul 2>&1 || (echo [ERROR] Node.js not found! Please install Node.js. & pause & exit /b 1)
 
-cd /d "%TARGET_DIR%"
+cd /d "%WORKING_DIR%"
 
-:: Clone or Pull
-if exist "%REPO_DIR%" (
-  echo [INFO] Existing repository found. Updating...
-  cd /d "%REPO_DIR%"
-  git pull
+:: 2. Manage Repository
+if exist "%REPO_NAME%" (
+    echo [INFO] Found existing project folder. Updating code...
+    cd /d "%REPO_NAME%"
+    git pull || (echo [WARNING] Git pull failed. Continuing with existing code... & pause)
 ) else (
-  echo [INFO] Cloning repository...
-  git clone "${remoteUrl}"
-  cd /d "%REPO_DIR%"
+    echo [INFO] Project folder not found. Cloning from GitHub...
+    git clone "${remoteUrl}" "%REPO_NAME%" || (echo [ERROR] Git clone failed! Check your PAT and internet. & pause & exit /b 1)
+    cd /d "%REPO_NAME%"
 )
 
-:: Install Dependencies (Smart)
+:: 3. Setup Dependencies
 if not exist "node_modules" (
-  echo [INFO] node_modules missing. Installing dependencies (this may take a while)...
-  call npm install
+    echo [INFO] node_modules missing. Installing dependencies...
+    call npm install || (echo [ERROR] npm install failed! & pause & exit /b 1)
 )
 
-:: Run Playwright
-echo.
-echo [RUNNING] Starting Playwright tests...
-call npx playwright test ${tests.join(" ")} --headed
+:: 4. Ensure Browsers are ready
+echo [INFO] Checking Playwright browsers...
+call npx playwright install chromium || (echo [ERROR] Playwright browser install failed! & pause & exit /b 1)
 
-:: Show Report
+:: 5. Execute Tests
+echo.
+echo ============================================================================
+echo [RUNNING] Starting Playwright (Headed Mode)...
+echo ============================================================================
+call npx playwright test ${tests.join(" ")} --headed || (echo [INFO] Tests finished with failures. & pause)
+
+:: 6. Show Results
 echo.
 echo [DONE] Opening HTML Report...
 call npx playwright show-report
 
+echo.
+echo Keep this window open to view logs. Press any key to exit.
 pause
 `;
 
+  // Trigger download utilizing Blob capabilities in Browser
   const blob = new Blob([batContent.trim()], { type: 'text/plain' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -183,7 +196,7 @@ pause
   a.click();
   document.body.removeChild(a);
 
-  updateUI({ status: 'passed', text: 'BAT File Downloaded! Please run it locally.' });
+  updateUI({ status: 'passed', text: 'Universal Local Runner (.bat) downloaded! Run it from your Downloads folder.' });
 }
 
 // ─── Headless: Trigger GitHub Action ─────────────────────────────────────────
