@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Playwright Automation Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">🚀</div>
+      <h1>Playwright Commander</h1>
+      <p>Configure and trigger your end-to-end automation test suite</p>
+    </header>
+
+    <main class="glass-panel">
+      <!-- Environment Setup -->
+      <section class="form-group">
+        <h2>🌐 Environment Configuration</h2>
+        <div class="input-grid">
+          <div class="input-field">
+             <label for="url">Target URL</label>
+             <input type="url" id="url" value="https://webuat.hitechdairy.in/login" placeholder="https://..." required>
+          </div>
+          <div class="input-field">
+             <label for="githubPat">GitHub PAT (For Headless CI)</label>
+             <input type="password" id="githubPat" placeholder="ghp_xxxx..." autocomplete="new-password">
+          </div>
+        </div>
+      </section>
+
+      <!-- Credentials Setup -->
+      <section class="form-group">
+        <h2>🔐 Credentials</h2>
+        <div class="input-grid">
+          <div class="input-field">
+             <label for="username">Username</label>
+             <input type="text" id="username" value="ShauryaTechnosoftPvt" required>
+          </div>
+          <div class="input-field">
+             <label for="password">Password</label>
+             <input type="password" id="password" value="Stpl@123" required>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tests Selection -->
+      <section class="form-group">
+        <h2>📋 Select Test Cases</h2>
+        <div class="test-list" id="test-list">
+          <label class="checkbox-container">
+            <input type="checkbox" name="testcase" value="TC001" checked>
+            <span class="checkmark"></span>
+            Test Case 001 - Login Verification (@smoke)
+          </label>
+          <label class="checkbox-container">
+            <input type="checkbox" name="testcase" value="TC002">
+            <span class="checkmark"></span>
+            Test Case 002 - Payment Gateway (@regression)
+          </label>
+        </div>
+      </section>
+      
+      <!-- Execution Setup -->
+      <section class="form-group">
+         <h2>🛠️ Execution Mode</h2>
+         <div class="mode-toggle">
+           <label class="radio-label">
+             <input type="radio" name="mode" value="headless" checked>
+             <span class="radio-btn">☁️ Headless (GitHub CI)</span>
+           </label>
+           <label class="radio-label">
+             <input type="radio" name="mode" value="headed">
+             <span class="radio-btn">💻 Headed (Generate .BAT)</span>
+           </label>
+         </div>
+      </section>
+
+      <!-- Action Button & Status -->
+      <div class="actions">
+        <button id="runBtn" class="primary-btn">Initialize Execution</button>
+      </div>
+
+      <div id="status-container" class="status-panel hidden">
+        <div id="status-indicator" class="status-indicator pulse"></div>
+        <div id="status-text" class="status-text">Ready</div>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

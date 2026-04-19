@@ -1,0 +1,7 @@
+{
+  "url": "https://webuat.hitechdairy.in/login",
+  "username": "ShauryaTechnosoftPvt",
+  "password": "Stpl@123",
+  "testIds": ["TC001"],
+  "mode": "headed"
+}

@@ -1,0 +1,6 @@
+{
+  "TC001": {
+    "file": "tests/login.spec.ts",
+    "tags": "@smoke"
+  }
+}
