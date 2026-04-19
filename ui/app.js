@@ -114,36 +114,63 @@ form.runBtn.addEventListener('click', async () => {
 });
 
 // ─── Headed: Generate & Download BAT ─────────────────────────────────────────
-function executeHeaded({ url, username, password, tests }) {
+function executeHeaded({ url, username, password, tests, pat }) {
+  // Use PAT in clone URL for private repo support
+  const remoteUrl = pat 
+    ? `https://${pat}@github.com/ShubhamK-STPL/NewTestFramwk.git`
+    : `https://github.com/ShubhamK-STPL/NewTestFramwk.git`;
+
   const batContent = `
 @echo off
-cd %USERPROFILE%\\Documents
+setlocal
 
-IF NOT EXIST SmokeTests (
-  mkdir SmokeTests
-)
-
-cd SmokeTests
-
-IF EXIST NewTestFramwk (
-  cd NewTestFramwk
-  git pull
-) ELSE (
-  git clone https://github.com/ShubhamK-STPL/NewTestFramwk.git
-  cd NewTestFramwk
-)
-
-npm install
-
+:: Configuration
 set BASE_URL=${url}
 set USERNAME=${username}
 set PASSWORD=${password}
+set TARGET_DIR=%USERPROFILE%\\Documents\\SmokeTests
+set REPO_DIR=%TARGET_DIR%\\NewTestFramwk
 
-echo Running Playwright Tests...
-npx playwright test ${tests.join(" ")} --headed
+echo ======================================================
+echo Playwright Automation - Parallel Execution (Headed)
+echo ======================================================
+echo Target Environment: ${url}
+echo.
 
-echo Opening Report...
-npx playwright show-report
+:: Ensure Target Directory exists
+if not exist "%TARGET_DIR%" (
+  echo [INFO] Creating directory: %TARGET_DIR%
+  mkdir "%TARGET_DIR%"
+)
+
+cd /d "%TARGET_DIR%"
+
+:: Clone or Pull
+if exist "%REPO_DIR%" (
+  echo [INFO] Existing repository found. Updating...
+  cd /d "%REPO_DIR%"
+  git pull
+) else (
+  echo [INFO] Cloning repository...
+  git clone "${remoteUrl}"
+  cd /d "%REPO_DIR%"
+)
+
+:: Install Dependencies (Smart)
+if not exist "node_modules" (
+  echo [INFO] node_modules missing. Installing dependencies (this may take a while)...
+  call npm install
+)
+
+:: Run Playwright
+echo.
+echo [RUNNING] Starting Playwright tests...
+call npx playwright test ${tests.join(" ")} --headed
+
+:: Show Report
+echo.
+echo [DONE] Opening HTML Report...
+call npx playwright show-report
 
 pause
 `;

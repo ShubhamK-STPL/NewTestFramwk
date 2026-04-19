@@ -17,9 +17,30 @@ on:
         required: true
 
 jobs:
-  test:
+  initialize:
     runs-on: ubuntu-latest
+    outputs:
+      test_matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
+      - name: Parse Test IDs into Matrix
+        id: set-matrix
+        run: |
+          # Convert comma-separated string "TC001,TC002" into JSON array ["TC001", "TC002"]
+          TEST_ARRAY=($(echo "${{ github.event.inputs.tests }}" | tr ',' '\n'))
+          JSON_ARRAY=$(printf '%s\n' "${TEST_ARRAY[@]}" | jq -R . | jq -s -c .)
+          echo "matrix=$JSON_ARRAY" >> $GITHUB_OUTPUT
+
+  execute-tests:
+    needs: initialize
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        testId: ${{ fromJson(needs.initialize.outputs.test_matrix) }}
+    name: Run Test (${{ matrix.testId }})
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -35,18 +56,33 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
-      - name: Run Tests (Dynamic)
+      - name: Run Specific Test
         run: |
           export BASE_URL=${{ github.event.inputs.url }}
           export USERNAME=${{ github.event.inputs.username }}
           export PASSWORD=${{ github.event.inputs.password }}
-          export TEST_IDS=${{ github.event.inputs.tests }}
+          export TEST_IDS=${{ matrix.testId }}
           export HEADLESS=true
 
           node runner/dynamic_runner.js
 
-      - name: Upload HTML Report
+      - name: Upload Individual Report
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: playwright-report
-          path: playwright-report
+          name: report-${{ matrix.testId }}
+          path: playwright-report/
+          retention-days: 1
+
+  consolidate-results:
+    needs: execute-tests
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check Overall Status
+        run: |
+          if [[ "${{ needs.execute-tests.result }}" == "success" ]]; then
+            echo "All tests passed!"
+          else
+            echo "One or more tests failed."
+          fi
