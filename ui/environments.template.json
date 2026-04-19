@@ -1,0 +1,22 @@
+{
+  "environments": [
+    {
+      "name": "Dev Env",
+      "url": "https://your-dev-url/login",
+      "username": "dev_username",
+      "password": "dev_password"
+    },
+    {
+      "name": "UAT Env",
+      "url": "https://your-uat-url/login",
+      "username": "uat_username",
+      "password": "uat_password"
+    },
+    {
+      "name": "Prod Env",
+      "url": "https://your-prod-url/login",
+      "username": "prod_username",
+      "password": "prod_password"
+    }
+  ]
+}

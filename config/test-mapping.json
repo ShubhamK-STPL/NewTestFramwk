@@ -1,5 +1,5 @@
 {
-  "TC001": "tests/login.spec.ts",
+  "TC001": "tests/farmerMilkCollectionFlow.spec.js",
   "TC002": "tests/payment.spec.ts",
   "TC003": "tests/logout.spec.ts"
 }

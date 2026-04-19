@@ -1,48 +1,96 @@
 // Test Mapping Configuration
 const mapping = {
-  "TC001": "tests/login.spec.ts",
+  "TC001": "tests/farmerMilkCollectionFlow.spec.js",
   "TC002": "tests/payment.spec.ts",
   "TC003": "tests/logout.spec.ts"
 };
 
 // DOM Elements
 const form = {
-  url: document.getElementById('url'),
+  envSelect: document.getElementById('envSelect'),
+  displayUrl: document.getElementById('displayUrl'),
   username: document.getElementById('username'),
   password: document.getElementById('password'),
   githubPat: document.getElementById('githubPat'),
+  savePatCheckbox: document.getElementById('savePatCheckbox'),
   runBtn: document.getElementById('runBtn'),
   statusPanel: document.getElementById('status-container'),
   statusText: document.getElementById('status-text'),
   statusIndicator: document.getElementById('status-indicator')
 };
 
-// Constants (Update these for your specific repo!)
+// Constants
 const REPO_OWNER = "ShubhamK-STPL";
 const REPO_NAME = "NewTestFramwk";
 const WORKFLOW_ID = "playwright.yml";
 
-// Main Execution Flow
+// Loaded environment config
+let environments = [];
+let selectedEnv = null;
+
+// ─── Load environments on startup ────────────────────────────────────────────
+async function loadEnvironments() {
+  try {
+    const res = await fetch('./environments.json');
+    if (!res.ok) throw new Error('environments.json not found');
+    const data = await res.json();
+    environments = data.environments;
+
+    // Populate dropdown
+    form.envSelect.innerHTML = '<option value="" disabled selected>-- Select an Environment --</option>';
+    environments.forEach((env, index) => {
+      const opt = document.createElement('option');
+      opt.value = index;
+      opt.textContent = env.name;
+      form.envSelect.appendChild(opt);
+    });
+  } catch (e) {
+    form.envSelect.innerHTML = '<option value="" disabled selected>⚠️ environments.json missing – copy from template</option>';
+    console.error('Failed to load environments.json:', e.message);
+  }
+}
+
+// Update fields when env is selected
+form.envSelect.addEventListener('change', () => {
+  const idx = parseInt(form.envSelect.value);
+  selectedEnv = environments[idx];
+
+  // Set read-only URL display
+  form.displayUrl.value = selectedEnv.url;
+
+  // Pre-fill credentials (user can still edit them)
+  form.username.value = selectedEnv.username;
+  form.password.value = selectedEnv.password;
+
+  // Enable run button
+  form.runBtn.disabled = false;
+});
+
+// ─── Main Execution Flow ──────────────────────────────────────────────────────
 form.runBtn.addEventListener('click', async () => {
-  // Collect Data
+  if (!selectedEnv) {
+    alert("Please select an environment first.");
+    return;
+  }
+
   const checkboxes = document.querySelectorAll('input[name="testcase"]:checked');
   const selectedTCs = Array.from(checkboxes).map(cb => cb.value);
   const mode = document.querySelector('input[name="mode"]:checked').value;
-  
+
   if (selectedTCs.length === 0) {
     alert("Please select at least one Test Case.");
     return;
   }
 
-  // Map to files
+  // Map to file paths
   const files = selectedTCs.map(tc => mapping[tc]).filter(Boolean);
 
   const data = {
-    url: form.url.value,
-    username: form.username.value,
-    password: form.password.value,
-    testIds: selectedTCs, // Passed to Headless
-    tests: files,         // Passed to Headed generated .bat
+    url: form.displayUrl.value,          // from env dropdown (read-only)
+    username: form.username.value,        // editable by user
+    password: form.password.value,        // editable by user
+    testIds: selectedTCs,
+    tests: files,
     pat: form.githubPat.value
   };
 
@@ -53,11 +101,19 @@ form.runBtn.addEventListener('click', async () => {
       alert("GitHub PAT is required for headless CI execution.");
       return;
     }
+    
+    // Save PAT logic
+    if (form.savePatCheckbox.checked) {
+      localStorage.setItem('saved_github_pat', data.pat);
+    } else {
+      localStorage.removeItem('saved_github_pat');
+    }
+
     executeHeadless(data);
   }
 });
 
-// Headed Logic: Generate BAT
+// ─── Headed: Generate & Download BAT ─────────────────────────────────────────
 function executeHeaded({ url, username, password, tests }) {
   const batContent = `
 @echo off
@@ -69,12 +125,12 @@ IF NOT EXIST SmokeTests (
 
 cd SmokeTests
 
-IF EXIST playwright-repo (
-  cd playwright-repo
+IF EXIST NewTestFramwk (
+  cd NewTestFramwk
   git pull
 ) ELSE (
-  git clone https://github.com/your-org/playwright-repo.git
-  cd playwright-repo
+  git clone https://github.com/ShubhamK-STPL/NewTestFramwk.git
+  cd NewTestFramwk
 )
 
 npm install
@@ -92,7 +148,6 @@ npx playwright show-report
 pause
 `;
 
-  // Trigger download utilizing Blob capabilities in Browser
   const blob = new Blob([batContent.trim()], { type: 'text/plain' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -104,15 +159,14 @@ pause
   updateUI({ status: 'passed', text: 'BAT File Downloaded! Please run it locally.' });
 }
 
-// Headless Logic: GitHub API Trigger
+// ─── Headless: Trigger GitHub Action ─────────────────────────────────────────
 async function executeHeadless(data) {
   updateUI({ status: 'queued', text: 'Triggering GitHub Action Workflow...' });
-  
+
   try {
     const success = await triggerWorkflow(data);
-    
+
     if (success) {
-      // Small buffer to allow GitHub API to register the new run
       setTimeout(() => pollStatus(updateUI, data.pat), 3000);
     } else {
       updateUI({ status: 'failed', text: 'Workflow trigger failed. Check PAT and Permissions.' });
@@ -122,7 +176,7 @@ async function executeHeadless(data) {
   }
 }
 
-// GitHub API Integration - Trigger
+// ─── GitHub API – Trigger Workflow ───────────────────────────────────────────
 async function triggerWorkflow(data) {
   const response = await fetch(
     `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${WORKFLOW_ID}/dispatches`,
@@ -148,7 +202,7 @@ async function triggerWorkflow(data) {
   return response.ok;
 }
 
-// GitHub API Integration - Get Latest Run
+// ─── GitHub API – Get Latest Run ─────────────────────────────────────────────
 async function getLatestRun(pat) {
   const res = await fetch(
     `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs?per_page=1`,
@@ -161,19 +215,18 @@ async function getLatestRun(pat) {
   );
 
   if (!res.ok) throw new Error("Failed to fetch runs.");
-
   const data = await res.json();
-  return data.workflow_runs[0]; // latest run
+  return data.workflow_runs[0];
 }
 
-// Core Polling logic
+// ─── GitHub API – Poll Status ─────────────────────────────────────────────────
 async function pollStatus(updateFn, pat) {
   let statusStr = "queued";
 
   while (statusStr === "queued" || statusStr === "in_progress") {
     try {
       const run = await getLatestRun(pat);
-      
+
       if (!run) {
         updateFn({ status: 'queued', text: 'Waiting for run to appear...' });
         await new Promise(r => setTimeout(r, 5000));
@@ -183,28 +236,23 @@ async function pollStatus(updateFn, pat) {
       statusStr = run.status;
       const conclusion = run.conclusion;
 
-      updateFn({
-        status: statusStr,
-        conclusion: conclusion,
-        url: run.html_url
-      });
+      updateFn({ status: statusStr, conclusion, url: run.html_url });
 
-      // Break safely if it's finished
       if (statusStr === "completed") break;
 
-    } catch(err) {
+    } catch (err) {
       console.warn("Polling error:", err);
     }
 
-    await new Promise(r => setTimeout(r, 5000)); // 5 sec heartbeat
+    await new Promise(r => setTimeout(r, 5000));
   }
 }
 
-// Status UI Updater Engine
+// ─── UI Status Updater ────────────────────────────────────────────────────────
 function updateUI({ status, conclusion, url, text }) {
   form.statusPanel.classList.remove('hidden');
   form.statusIndicator.className = 'status-indicator pulse';
-  
+
   if (status === "queued") {
     form.statusIndicator.classList.add('queued');
     form.statusText.innerText = text || "🟡 Queued in Pipeline...";
@@ -212,7 +260,6 @@ function updateUI({ status, conclusion, url, text }) {
     form.statusIndicator.classList.add('running');
     form.statusText.innerText = text || "🔵 Running End-to-End Tests...";
   } else {
-    // Completed state
     form.statusIndicator.classList.remove('pulse');
     if (conclusion === "success" || status === "passed") {
       form.statusIndicator.classList.add('passed');
@@ -223,3 +270,13 @@ function updateUI({ status, conclusion, url, text }) {
     }
   }
 }
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+// Load saved PAT from LocalStorage if it exists
+const savedPat = localStorage.getItem('saved_github_pat');
+if (savedPat) {
+  form.githubPat.value = savedPat;
+  form.savePatCheckbox.checked = true;
+}
+
+loadEnvironments();
