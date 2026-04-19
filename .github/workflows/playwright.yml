@@ -1,0 +1,52 @@
+name: Playwright Test Execution
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Application URL"
+        required: true
+      username:
+        description: "Username"
+        required: true
+      password:
+        description: "Password"
+        required: true
+      tests:
+        description: "Test IDs (comma separated)"
+        required: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Tests (Dynamic)
+        run: |
+          export BASE_URL=${{ github.event.inputs.url }}
+          export USERNAME=${{ github.event.inputs.username }}
+          export PASSWORD=${{ github.event.inputs.password }}
+          export TEST_IDS=${{ github.event.inputs.tests }}
+          export HEADLESS=true
+
+          node runner/dynamic_runner.js
+
+      - name: Upload HTML Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report

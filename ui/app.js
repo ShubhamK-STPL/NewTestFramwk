@@ -41,7 +41,8 @@ form.runBtn.addEventListener('click', async () => {
     url: form.url.value,
     username: form.username.value,
     password: form.password.value,
-    tests: files,
+    testIds: selectedTCs, // Passed to Headless
+    tests: files,         // Passed to Headed generated .bat
     pat: form.githubPat.value
   };
 
@@ -138,7 +139,7 @@ async function triggerWorkflow(data) {
           url: data.url,
           username: data.username,
           password: data.password,
-          tests: data.tests.join(",")
+          tests: data.testIds.join(",")
         }
       })
     }

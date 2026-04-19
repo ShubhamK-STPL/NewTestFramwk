@@ -7,11 +7,18 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: 0,
   workers: 1,
-  reporter: 'html',
+
   use: {
+    headless: process.env.HEADLESS === 'true',
     baseURL: process.env.BASE_URL,
     trace: 'on-first-retry',
   },
+
+  reporter: [
+    ['html', { open: 'never' }],
+    ['list']
+  ],
+
   projects: [
     {
       name: 'chromium',
