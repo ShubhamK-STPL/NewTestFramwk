@@ -18,9 +18,9 @@ const form = {
 };
 
 // Constants (Update these for your specific repo!)
-const REPO_OWNER = "<owner>";
-const REPO_NAME = "<repo>";
-const WORKFLOW_ID = "run.yml";
+const REPO_OWNER = "ShubhamK-STPL";
+const REPO_NAME = "NewTestFramwk";
+const WORKFLOW_ID = "playwright.yml";
 
 // Main Execution Flow
 form.runBtn.addEventListener('click', async () => {
